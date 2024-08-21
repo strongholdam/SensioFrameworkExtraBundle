@@ -27,16 +27,6 @@ use Symfony\Component\HttpKernel\KernelEvents;
 class ControllerListener implements EventSubscriberInterface
 {
     /**
-     * @var Reader
-     */
-    private $reader;
-
-    public function __construct(Reader $reader)
-    {
-        $this->reader = $reader;
-    }
-
-    /**
      * Modifies the Request object to apply configuration information found in
      * controllers annotations like the template to render or HTTP caching
      * configuration.
@@ -57,26 +47,23 @@ class ControllerListener implements EventSubscriberInterface
         $object = new \ReflectionClass($className);
         $method = $object->getMethod($controller[1]);
 
-        $classConfigurations = $this->getConfigurations($this->reader->getClassAnnotations($object));
-        $methodConfigurations = $this->getConfigurations($this->reader->getMethodAnnotations($method));
 
-        if (80000 <= \PHP_VERSION_ID) {
-            $classAttributes = array_map(
-                function (\ReflectionAttribute $attribute) {
-                    return $attribute->newInstance();
-                },
-                $object->getAttributes(ConfigurationInterface::class, \ReflectionAttribute::IS_INSTANCEOF)
-            );
-            $classConfigurations = array_merge($classConfigurations, $this->getConfigurations($classAttributes));
+        $classAttributes = array_map(
+            function (\ReflectionAttribute $attribute) {
+                return $attribute->newInstance();
+            },
+            $object->getAttributes(ConfigurationInterface::class, \ReflectionAttribute::IS_INSTANCEOF)
+        );
+        $classConfigurations =  $this->getConfigurations($classAttributes);
 
-            $methodAttributes = array_map(
-                function (\ReflectionAttribute $attribute) {
-                    return $attribute->newInstance();
-                },
-                $method->getAttributes(ConfigurationInterface::class, \ReflectionAttribute::IS_INSTANCEOF)
-            );
-            $methodConfigurations = array_merge($methodConfigurations, $this->getConfigurations($methodAttributes));
-        }
+        $methodAttributes = array_map(
+            function (\ReflectionAttribute $attribute) {
+                return $attribute->newInstance();
+            },
+            $method->getAttributes(ConfigurationInterface::class, \ReflectionAttribute::IS_INSTANCEOF)
+        );
+        $methodConfigurations = $this->getConfigurations($methodAttributes);
+
 
         $configurations = [];
         foreach (array_merge(array_keys($classConfigurations), array_keys($methodConfigurations)) as $key) {
